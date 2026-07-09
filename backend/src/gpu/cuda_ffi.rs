@@ -13,6 +13,8 @@ type CUdeviceptr = u64;
 type CUstream = *mut c_void;
 const CUDA_SUCCESS: CUresult = 0;
 
+type CuModuleGetGlobalFn = unsafe extern "C" fn(*mut CUdeviceptr, *mut usize, CUmodule, *const c_char) -> CUresult;
+
 type CuInitFn = unsafe extern "C" fn(u32) -> CUresult;
 type CuDeviceGetFn = unsafe extern "C" fn(*mut CUdevice, i32) -> CUresult;
 type CuCtxCreateFn = unsafe extern "C" fn(*mut CUcontext, u32, CUdevice) -> CUresult;
@@ -44,6 +46,7 @@ struct CudaDriver {
     sync: Symbol<'static, CuCtxSynchronizeFn>,
     free: Symbol<'static, CuMemFreeFn>,
     get_func_sym: Symbol<'static, CuModuleGetFunctionFn>,
+    get_global: Symbol<'static, CuModuleGetGlobalFn>,
 }
 
 unsafe impl Send for CudaDriver {}
@@ -128,6 +131,21 @@ pub fn synchronize() -> Result<(), String> {
     Ok(())
 }
 
+/// Copy host data to a device constant-memory symbol.
+/// Equivalent to cudaMemcpyToSymbol(name, data, size, 0, cudaMemcpyHostToDevice).
+pub fn copy_to_symbol<T>(name: &str, data: &[T]) -> Result<(), String> {
+    let guard = CUDA.lock().unwrap();
+    let d = guard.as_ref().ok_or("CUDA not initialized")?;
+    let cn = CString::new(name).map_err(|e| format!("Invalid symbol name: {e}"))?;
+    let mut ptr: CUdeviceptr = 0;
+    let mut size: usize = 0;
+    let r = unsafe { (d.get_global)(&mut ptr, &mut size, d.module, cn.as_ptr()) };
+    if r != CUDA_SUCCESS { return Err(format!("cuModuleGetGlobal({name}): {r}")); }
+    let r = unsafe { (d.htod)(ptr, data.as_ptr() as *const c_void, std::mem::size_of_val(data)) };
+    if r != CUDA_SUCCESS { return Err(format!("cuMemcpyHtoD symbol({name}): {r}")); }
+    Ok(())
+}
+
 // ═══ Internal Init ═══════════════════════════════════════
 
 fn try_init() -> Result<CudaDriver, String> {
@@ -180,8 +198,10 @@ fn try_init() -> Result<CudaDriver, String> {
     let free = sym!(b"cuMemFree_v2\0", CuMemFreeFn)?;
     let get_func_sym = sym!(b"cuModuleGetFunction\0", CuModuleGetFunctionFn)?;
 
+    let get_global = sym!(b"cuModuleGetGlobal_v2\0", CuModuleGetGlobalFn)?;
+
     Ok(CudaDriver {
         _lib: lib, _ctx: ctx, module,
-        launch, alloc, htod, dtoh, sync, free, get_func_sym,
+        launch, alloc, htod, dtoh, sync, free, get_func_sym, get_global,
     })
 }
