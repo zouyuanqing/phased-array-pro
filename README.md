@@ -13,6 +13,10 @@ https://github.com/zouyuanqing/phased-array-pro/raw/master/docs/demo.mp4
 
 > GPU 加速相控阵雷达波束聚合模拟器演示动画。由 [HyperFrames](https://hyperframes.heygen.com/) 生成。
 
+<p align="center">
+  <img src="docs/demo.gif" alt="Phased Array Pro Demo" width="800"/>
+</p>
+
 ## 概述
 
 相控阵雷达通过控制各阵元的相位差实现电子扫描，无需机械转动。本项目提供：
