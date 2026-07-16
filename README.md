@@ -7,6 +7,12 @@
 [![CUDA](https://img.shields.io/badge/CUDA-13.2-green.svg)](https://developer.nvidia.com/cuda-toolkit)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev)
 
+## Demo
+
+https://github.com/zouyuanqing/phased-array-pro/raw/master/docs/demo.mp4
+
+> GPU 加速相控阵雷达波束聚合模拟器演示动画。由 [HyperFrames](https://hyperframes.heygen.com/) 生成。
+
 ## 概述
 
 相控阵雷达通过控制各阵元的相位差实现电子扫描，无需机械转动。本项目提供：
